@@ -11,7 +11,9 @@ This example is being driven by [BrewPi and the BrewBlox application](https://br
 ## Basic Getting Started Hardware
 
 1x Arduino IDE 1.6.5
+
 1x MXA042 Flame Sensor
+
 2x Relay module
 
 ### Installing
