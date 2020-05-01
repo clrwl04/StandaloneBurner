@@ -1,6 +1,7 @@
-#include <FiniteStateMachine.h>
-//#define BOUNCE_LOCK_OUT // Enable alternative debounce method with faster response time.
+// Compiles with Arduino IDE 1.6.5
 #include <Bounce2.h>
+#include <FiniteStateMachine.h>
+
 
 
 State Off = State(enterOff, updateOff, exitOff); // burner is off
@@ -15,7 +16,6 @@ FSM Burner = FSM(Off); // start finite state machine in the Off state
 
 
 
-#define LED_PIN 13
 #define GasRelayPin 12 //			3    instead using 12 y
 #define IgniterRelayPin 11 //		2   instead using 11 y
 #define CommandPin 4 //				4  y
@@ -73,7 +73,6 @@ void setup()
  
   debouncer.attach(FlameSensorPin,INPUT_PULLUP); // Attach the debouncer to a pin with INPUT_PULLUP mode
   debouncer.interval(10); // Use a debounce interval of 10 milliseconds
-  pinMode(LED_PIN,OUTPUT);
 	
 } // end setup()
 
@@ -97,21 +96,6 @@ void enterOff()
 
 void updateOff()
 {
-  // Get the updated value :
-  debouncer.update();
-  if(debouncer.read() == FlameOn)
-    {
-    digitalWrite(LED_PIN, HIGH );
-    delay(100);
-    digitalWrite(LED_PIN, LOW );
-    delay(100);
-  } 
-  else {
-    digitalWrite(LED_PIN, HIGH );
-    delay(1000);
-    digitalWrite(LED_PIN, LOW );
-    delay(100);
-  }
 	if(digitalRead(CommandPin) == CommandOn)
 	Burner.transitionTo(Lighting);
 } // end updateOff()
@@ -235,3 +219,4 @@ void updateAlarm()
 	if(digitalRead(CommandPin) == CommandOff)
 	Burner.transitionTo(Off);
 } //end updateAlarm()
+
