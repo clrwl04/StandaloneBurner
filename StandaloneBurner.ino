@@ -1,4 +1,6 @@
 #include <FiniteStateMachine.h>
+//#define BOUNCE_LOCK_OUT // Enable alternative debounce method with faster response time.
+#include <Bounce2.h>
 
 
 State Off = State(enterOff, updateOff, exitOff); // burner is off
@@ -12,25 +14,26 @@ State Alarm = State(updateAlarm);  //burner failed to light or went out
 FSM Burner = FSM(Off); // start finite state machine in the Off state
 
 
-#define GasRelayPin 			3
-#define IgniterRelayPin 		2
-#define CommandPin 				4
-#define StatusPin 				5
-#define OffStatusLedPin			9
-#define LightingStatusLedPin 	10
-#define OnStatusLedPin			8
-#define FlameSensorPin			6     
-#define BuzzerPin				7
 
-#define RelayOn		1
-#define RelayOff 	0
+#define LED_PIN 13
+#define GasRelayPin 12 //			3    instead using 12 y
+#define IgniterRelayPin 11 //		2   instead using 11 y
+#define CommandPin 4 //				4  y
+#define StatusPin 5 //				5   y Power'd On not connected
+#define OffStatusLedPin	9 //		9   y
+#define LightingStatusLedPin 10 //	10   y
+#define OnStatusLedPin 8 //		8   
+#define FlameSensorPin	6 //		6     y
+#define BuzzerPin	7 //			7  y
+
+#define RelayOn		0//1  Logic reversal required by use of dual Relay module
+#define RelayOff 	1//0
 
 #define LedOn	1
 #define LedOff	0
 
 #define CommandOn	0
 #define CommandOff	1
-
 #define StatusOn	0
 #define StatusOff	1
 
@@ -44,14 +47,14 @@ FSM Burner = FSM(Off); // start finite state machine in the Off state
 #define BuzzerOn 0
 #define BuzzerOff 1
 
-int BurnerTries = 1; // counts tries to light Burner
-
+int BurnerTries = 1; // counts tries to lightenterOff Burner
+Bounce debouncer = Bounce(); // Instantiate a Bounce object
 
 void setup()
 {
 	pinMode(GasRelayPin,OUTPUT);
 	digitalWrite(GasRelayPin,RelayOff);
-	
+ 
 	pinMode(IgniterRelayPin,OUTPUT);
 	digitalWrite(IgniterRelayPin,RelayOff);
 	
@@ -62,11 +65,15 @@ void setup()
 	pinMode(OffStatusLedPin,OUTPUT);
 	pinMode(LightingStatusLedPin,OUTPUT);
 	pinMode(OnStatusLedPin,OUTPUT);
-	
-	pinMode(FlameSensorPin,INPUT_PULLUP);
+	//pinMode(FlameSensorPin,INPUT_PULLUP);
 	
 	pinMode(BuzzerPin,OUTPUT);
 	digitalWrite(BuzzerPin,BuzzerOff);
+
+ 
+  debouncer.attach(FlameSensorPin,INPUT_PULLUP); // Attach the debouncer to a pin with INPUT_PULLUP mode
+  debouncer.interval(10); // Use a debounce interval of 10 milliseconds
+  pinMode(LED_PIN,OUTPUT);
 	
 } // end setup()
 
@@ -90,6 +97,21 @@ void enterOff()
 
 void updateOff()
 {
+  // Get the updated value :
+  debouncer.update();
+  if(debouncer.read() == FlameOn)
+    {
+    digitalWrite(LED_PIN, HIGH );
+    delay(100);
+    digitalWrite(LED_PIN, LOW );
+    delay(100);
+  } 
+  else {
+    digitalWrite(LED_PIN, HIGH );
+    delay(1000);
+    digitalWrite(LED_PIN, LOW );
+    delay(100);
+  }
 	if(digitalRead(CommandPin) == CommandOn)
 	Burner.transitionTo(Lighting);
 } // end updateOff()
@@ -119,22 +141,33 @@ void updateLighting()
 						{
 							BurnerTries = BurnerTries + 1;
 							digitalWrite(IgniterRelayPin,RelayOn);  // try starting
-							
+             
 							digitalWrite(GasRelayPin,RelayOn);
 							unsigned long endtime = millis()+ FlameWaitTime;
-							while(digitalRead(FlameSensorPin) != FlameOn && millis()< endtime)
+              // Get the updated value :
+              //int Flamestatus = debouncer.read();
+							//while(digitalRead(FlameSensorPin) != FlameOn && millis()< endtime)
+              debouncer.update();
+              while(debouncer.read() != FlameOn && millis()< endtime)
 								{
 									if(digitalRead(CommandPin) == CommandOff)
 										Burner.transitionTo(Off);
+                  debouncer.update();
 								} // end while
 								
-							if(digitalRead(FlameSensorPin) == FlameOn)
+              // Get the updated value from FlameSensorPin :
+              //int Flamestatus = debouncer.read();
+              //if(digitalRead(FlameSensorPin) == FlameOn)
+              debouncer.update();
+							if(debouncer.read() == FlameOn)
 								{
 									digitalWrite(IgniterRelayPin,RelayOff);
 									Burner.transitionTo(On);
 								}
-							if(digitalRead(FlameSensorPin) == FlameOff)
-								{	// allow time for gas to clear before trying again
+							//if(digitalRead(FlameSensorPin) == FlameOff)
+              debouncer.update();
+              if(debouncer.read() == FlameOff)
+								{	// allow time for gas to clear before trying again ////////////////////////////////////
 									unsigned long endtime = millis() + GasClearTime; 
 									digitalWrite(GasRelayPin,RelayOff);
 									digitalWrite(IgniterRelayPin,RelayOff);
@@ -162,7 +195,11 @@ void enterOn()
 
 void updateOn()
 {
-	if(digitalRead(FlameSensorPin) == FlameOff)
+	// Get the updated value from FlameSensorPin :
+  //int Flamestatus = debouncer.read();
+	//if(digitalRead(FlameSensorPin) == FlameOff)
+  debouncer.update();
+	if(debouncer.read() == FlameOff)
 	Burner.transitionTo(Alarm);
 	if(digitalRead(CommandPin) == CommandOff)
 	Burner.transitionTo(Off);
@@ -198,8 +235,3 @@ void updateAlarm()
 	if(digitalRead(CommandPin) == CommandOff)
 	Burner.transitionTo(Off);
 } //end updateAlarm()
-
-
-
-
-
