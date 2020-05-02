@@ -2,7 +2,7 @@
 
 A control system to light a gas flame based on an external demand, while monitoring the process for error states. Improvements for working with relay flame sense devices to account for bounce/noise from the relay contacts driving the flame sense pin.
 
-## Anything being used in conjunction Gas should be checked by a qualified person before use.
+## Anything being used in conjunction with Gas should be checked by a qualified person before use.
 
 [![Video of working example](https://img.youtube.com/vi/dyey9r4inmE/0.jpg)](https://youtu.be/dyey9r4inmE "Standalone Burner")
 
